@@ -1,4 +1,6 @@
 using System.Globalization;
+using System.Text.Encodings.Web;
+using System.Text.Unicode;
 using EventTracker.Application;
 using EventTracker.Application.Common;
 using EventTracker.Data;
@@ -6,6 +8,7 @@ using EventTracker.Web.Infrastructure;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Localization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.WebEncoders;
 using Microsoft.Data.Sqlite;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -23,6 +26,10 @@ builder.Services.AddControllersWithViews(options =>
     messages.SetMissingBindRequiredValueAccessor(field => $"{field} zorunlu.");
     messages.SetUnknownValueIsInvalidAccessor(field => $"{field} için girilen değer geçerli değil.");
 });
+
+// Write Turkish letters as they are instead of HTML character references (İ, not &#x130;).
+builder.Services.Configure<WebEncoderOptions>(options =>
+    options.TextEncoderSettings = new TextEncoderSettings(UnicodeRanges.All));
 
 // SQLite needs no server: the database is a single file, created on first start.
 var databasePath = Path.GetFullPath(
