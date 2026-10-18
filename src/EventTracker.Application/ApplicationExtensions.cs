@@ -1,3 +1,5 @@
+using EventTracker.Application.Attendance;
+using EventTracker.Application.Calendar;
 using EventTracker.Application.Categories;
 using EventTracker.Application.Common;
 using EventTracker.Application.Events;
@@ -14,6 +16,8 @@ public static class ApplicationExtensions
         services.AddSingleton(provider => new EventClock(provider.GetRequiredService<TimeProvider>(), zone));
         services.AddScoped<EventService>();
         services.AddScoped<CategoryService>();
+        services.AddScoped<AttendanceService>();
+        services.AddScoped<CalendarService>();
         return services;
     }
 }
