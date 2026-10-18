@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    name: Build and test
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore
+        run: dotnet restore EventTracker.slnx
+
+      - name: Build
+        run: dotnet build EventTracker.slnx --no-restore --configuration Release
+
+      - name: Check for model changes without a migration
+        run: |
+          dotnet tool install --global dotnet-ef --version 10.0.9
+          dotnet ef migrations has-pending-model-changes --project src/EventTracker.Data --startup-project src/EventTracker.Web --no-build --configuration Release
+
+      - name: Start with an empty database
+        env:
+          Database__Path: ${{ runner.temp }}/smoke.db
+          ASPNETCORE_URLS: http://localhost:5090
+          Seed__DemoContent: "true"
+        run: |
+          nohup dotnet run --project src/EventTracker.Web --configuration Release --no-build --no-launch-profile > app.log 2>&1 &
+          for i in $(seq 1 60); do curl -sf http://localhost:5090/ > /dev/null && break; sleep 2; done
+          fail() { echo "::error::$1"; cat app.log; exit 1; }
+          curl -sf http://localhost:5090/ | grep -q "Etkinlikler" || fail "home page did not render"
+          curl -sf "http://localhost:5090/?scope=gecmis&q=frontend" | grep -q "Frontend İstanbul" || fail "demo data or search is missing"
+          status=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:5090/events/999)
+          [ "$status" = "404" ] || fail "unknown event returned $status instead of 404"

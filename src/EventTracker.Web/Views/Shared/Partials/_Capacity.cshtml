@@ -1,0 +1,22 @@
+@model (int Confirmed, int? Capacity, int Waitlist)
+@{
+    var percent = Model.Capacity is int capacity && capacity > 0 ? Math.Min(100, Model.Confirmed * 100 / capacity) : 0;
+    var full = Model.Capacity is int limit && Model.Confirmed >= limit;
+}
+<div class="capacity">
+    <div class="capacity-text">
+        <span class="font-mono">@Model.Confirmed@(Model.Capacity is int c ? $" / {c}" : null)</span>
+        <span class="text-muted">@(Model.Capacity is null ? "katılımcı · sınırsız" : "katılımcı")</span>
+    </div>
+    @if (Model.Capacity is not null)
+    {
+        <div class="capacity-bar @(full ? "is-full" : null)" role="progressbar" aria-label="Doluluk"
+             aria-valuenow="@percent" aria-valuemin="0" aria-valuemax="100">
+            <span style="width: @percent%"></span>
+        </div>
+    }
+    @if (Model.Waitlist > 0)
+    {
+        <div class="capacity-note">Bekleme listesinde @Model.Waitlist kişi</div>
+    }
+</div>
