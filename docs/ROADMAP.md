@@ -14,7 +14,8 @@ Her aşama ayrı bir branch ve PR olarak yapılır (`stage/<no>-<kisa-ad>`). Bir
 - [x] `docs/DESIGN.md` token'larıyla yeni layout; validation mesajları
 
 ## Aşama 2 — Özellikler, test, yayın
-- [ ] Liste + **takvim görünümü** (ay/hafta), yaklaşan/geçmiş filtreleri, arama
-- [ ] Katılım (RSVP) formu, kapasite dolunca bekleme listesi, katılımcı listesi
-- [ ] .ics dosyası indir (takvime ekle)
-- [ ] xUnit testleri + GitHub Actions; canlı demo; ekran görüntüleri; README (TR + EN)
+- [x] Liste + **takvim görünümü** (ay/hafta), yaklaşan/geçmiş filtreleri, arama
+- [x] Katılım (RSVP) formu, kapasite dolunca bekleme listesi, katılımcı listesi
+- [x] .ics dosyası indir (takvime ekle)
+- [x] xUnit testleri + GitHub Actions; ekran görüntüleri; README (TR + EN)
+- [ ] Canlı demo
