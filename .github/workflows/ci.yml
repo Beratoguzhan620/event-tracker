@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    name: Build and test
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore
+        run: dotnet restore EventTracker.slnx
+
+      - name: Build
+        run: dotnet build EventTracker.slnx --no-restore --configuration Release
+
+      - name: Check for model changes without a migration
+        run: |
+          dotnet tool install --global dotnet-ef --version 10.0.9
+          dotnet ef migrations has-pending-model-changes --project src/EventTracker.Data --startup-project src/EventTracker.Web --no-build --configuration Release
+
+      - name: Start with an empty database
+        env:
+          Database__Path: ${{ runner.temp }}/smoke.db
+          ASPNETCORE_URLS: http://localhost:5090
+          Seed__DemoContent: "true"
+        run: |
+          nohup dotnet run --project src/EventTracker.Web --configuration Release --no-build --no-launch-profile > app.log 2>&1 &
+          for i in $(seq 1 60); do curl -sf http://localhost:5090/ > /dev/null && break; sleep 2; done
+          curl -sf http://localhost:5090/ | grep -q "Etkinlikler"
+          curl -sf "http://localhost:5090/?scope=tumu" | grep -q "Frontend İstanbul"
+          curl -sf -o /dev/null -w '%{http_code}\n' http://localhost:5090/events/999 | grep -q 404 || (cat app.log; exit 1)
