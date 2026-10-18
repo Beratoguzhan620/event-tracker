@@ -1,3 +1,7 @@
 <Solution>
-  <Project Path="EventTracker/EventTracker.csproj" />
+  <Folder Name="/src/">
+    <Project Path="src/EventTracker.Application/EventTracker.Application.csproj" />
+    <Project Path="src/EventTracker.Data/EventTracker.Data.csproj" />
+    <Project Path="src/EventTracker.Web/EventTracker.Web.csproj" />
+  </Folder>
 </Solution>
