@@ -125,6 +125,7 @@ public static class DemoDataSeeder
                     Email = email,
                     Status = confirmed ? AttendanceStatus.Confirmed : AttendanceStatus.Waitlisted,
                     RegisteredAt = registeredAt + step * i,
+                    AccessToken = Tokens.Create(),
                 });
             }
 

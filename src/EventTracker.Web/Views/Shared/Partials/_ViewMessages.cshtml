@@ -1,5 +1,6 @@
 @{
-    var errors = ViewData.ModelState
+    // A page that shows form errors next to its own form sets SkipModelErrors.
+    var errors = ViewData["SkipModelErrors"] is true ? new List<string>() : ViewData.ModelState
         .Where(kv => string.IsNullOrEmpty(kv.Key))
         .SelectMany(kv => kv.Value!.Errors)
         .Select(e => e.ErrorMessage)

@@ -1,0 +1,15 @@
+**/bin
+**/obj
+**/node_modules
+**/wwwroot/uploads
+**/data-protection-keys
+**/App_Data
+**/appsettings.Development.json
+.git
+.github
+.vs
+.vscode
+.idea
+docs
+tests
+**/*.user

@@ -48,6 +48,8 @@ public class EventTrackerDbContext(DbContextOptions<EventTrackerDbContext> optio
         {
             attendee.Property(a => a.FullName).HasMaxLength(Limits.FullName).IsRequired();
             attendee.Property(a => a.Email).HasMaxLength(Limits.Email).IsRequired();
+            attendee.Property(a => a.AccessToken).HasMaxLength(32).IsFixedLength().IsRequired();
+            attendee.HasIndex(a => a.AccessToken).IsUnique();
             attendee.HasIndex(a => new { a.EventId, a.Email }).IsUnique();
             attendee.HasIndex(a => new { a.EventId, a.Status, a.RegisteredAt });
 

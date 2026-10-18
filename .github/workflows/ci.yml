@@ -24,6 +24,9 @@ jobs:
       - name: Build
         run: dotnet build EventTracker.slnx --no-restore --configuration Release
 
+      - name: Test
+        run: dotnet test tests/EventTracker.Application.Tests/EventTracker.Application.Tests.csproj --no-build --configuration Release --logger "console;verbosity=normal"
+
       - name: Check for model changes without a migration
         run: |
           dotnet tool install --global dotnet-ef --version 10.0.9
@@ -42,3 +45,33 @@ jobs:
           curl -sf "http://localhost:5090/?scope=gecmis&q=frontend" | grep -q "Frontend İstanbul" || fail "demo data or search is missing"
           status=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:5090/events/999)
           [ "$status" = "404" ] || fail "unknown event returned $status instead of 404"
+
+  docker:
+    name: Docker Compose
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Start the stack
+        run: docker compose up --build --detach
+
+      - name: Check the app
+        run: |
+          for i in $(seq 1 60); do
+            if curl -sf http://localhost:8080/ > /dev/null; then break; fi
+            sleep 3
+          done
+          curl -sf http://localhost:8080/ | grep -q "Etkinlikler"
+          curl -sf http://localhost:8080/calendar | grep -q "Takvim"
+          curl -sf -D - -o event.ics http://localhost:8080/events/5/ics | grep -qi "text/calendar"
+          grep -q "BEGIN:VEVENT" event.ics
+          echo "EventTracker is up and serves calendar files."
+
+      - name: Show logs
+        if: failure()
+        run: docker compose logs --no-color
+
+      - name: Stop the stack
+        if: always()
+        run: docker compose down --volumes

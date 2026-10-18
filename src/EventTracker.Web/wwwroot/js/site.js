@@ -171,6 +171,20 @@
         if (remove) remove.checked = false;
     });
 
+    // ---------- Copy to clipboard ----------
+    document.addEventListener("click", async (event) => {
+        const button = event.target.closest("[data-copy]");
+        if (!button) return;
+        const source = document.querySelector(button.dataset.copy);
+        if (!source) return;
+        try {
+            await navigator.clipboard.writeText(source.value ?? source.textContent);
+            showToast("Bağlantı kopyalandı.");
+        } catch {
+            source.select?.();
+        }
+    });
+
     // ---------- Boot ----------
     document.addEventListener("DOMContentLoaded", () => {
         document.querySelectorAll("[data-toast]").forEach(mountToast);

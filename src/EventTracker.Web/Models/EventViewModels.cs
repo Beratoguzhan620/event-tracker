@@ -28,6 +28,10 @@ public sealed class EventDetailsViewModel
 
     public required DateTime Now { get; init; }
 
+    public RegistrationFormModel Registration { get; init; } = new();
+
+    public required string GoogleCalendarUrl { get; init; }
+
     public bool IsPast => Event.EndsAt < Now;
 
     public bool IsOngoing => Event.StartsAt <= Now && Now < Event.EndsAt;
@@ -130,4 +134,18 @@ public sealed class EventFormModel
         null => string.Empty,
         _ => serviceField,
     };
+}
+
+public sealed class RegistrationFormModel
+{
+    [Display(Name = "Ad soyad")]
+    [Required(ErrorMessage = "Adınızı ve soyadınızı yazın.")]
+    [StringLength(Limits.FullName, MinimumLength = 2, ErrorMessage = "Ad soyad {2} ile {1} karakter arasında olmalı.")]
+    public string FullName { get; set; } = string.Empty;
+
+    [Display(Name = "E-posta")]
+    [Required(ErrorMessage = "E-posta adresi zorunlu.")]
+    [EmailAddress(ErrorMessage = "Geçerli bir e-posta adresi yazın.")]
+    [StringLength(Limits.Email, ErrorMessage = "E-posta en fazla {1} karakter olabilir.")]
+    public string Email { get; set; } = string.Empty;
 }

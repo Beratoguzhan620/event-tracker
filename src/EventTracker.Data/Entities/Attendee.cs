@@ -23,4 +23,9 @@ public class Attendee
     public AttendanceStatus Status { get; set; }
 
     public DateTime RegisteredAt { get; set; }
+
+    public DateTime? CancelledAt { get; set; }
+
+    /// <summary>Random key in the personal link that lets the attendee see or cancel their registration.</summary>
+    public string AccessToken { get; set; } = string.Empty;
 }

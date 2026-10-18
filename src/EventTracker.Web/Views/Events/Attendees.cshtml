@@ -1,0 +1,91 @@
+@model AttendeesViewModel
+@{
+    var list = Model.List;
+    ViewData["Title"] = $"Katılımcılar · {list.EventTitle}";
+    var turkish = new System.Globalization.CultureInfo("tr-TR");
+}
+
+<partial name="Partials/_ViewMessages" />
+
+<nav class="back-link">
+    <a asp-action="Details" asp-route-id="@list.EventId"><i class="bi bi-arrow-left" aria-hidden="true"></i>@list.EventTitle</a>
+</nav>
+
+<div class="page-header">
+    <div>
+        <h1>Katılımcılar</h1>
+        <p>
+            @list.Confirmed.Count onaylı@(list.Capacity is int c ? $" / {c} kişilik kontenjan" : " · kontenjan sınırı yok")
+            · @list.Waitlist.Count bekleme listesinde · @list.Cancelled.Count iptal
+        </p>
+    </div>
+</div>
+
+@{
+    async Task Table(string title, string emptyText, List<EventTracker.Application.Attendance.AttendeeRow> rows, bool numbered, bool canCancel, bool showCancelledAt)
+    {
+        <section class="card mb-3" aria-label="@title">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h2 class="h6 m-0">@title</h2>
+                <span class="small text-muted font-mono">@rows.Count</span>
+            </div>
+            @if (rows.Count == 0)
+            {
+                <p class="small text-muted m-3">@emptyText</p>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table align-middle mb-0">
+                        <thead>
+                            <tr>
+                                @if (numbered)
+                                {
+                                    <th scope="col" class="text-end" style="width: 56px">Sıra</th>
+                                }
+                                <th scope="col">Ad soyad</th>
+                                <th scope="col">E-posta</th>
+                                <th scope="col">@(showCancelledAt ? "İptal" : "Kayıt")</th>
+                                @if (canCancel)
+                                {
+                                    <th scope="col"><span class="visually-hidden">İşlem</span></th>
+                                }
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @for (var i = 0; i < rows.Count; i++)
+                            {
+                                var row = rows[i];
+                                <tr>
+                                    @if (numbered)
+                                    {
+                                        <td class="text-end font-mono text-muted">@(i + 1)</td>
+                                    }
+                                    <td>@row.FullName</td>
+                                    <td class="text-muted">@row.Email</td>
+                                    <td class="text-muted small text-nowrap">@((showCancelledAt ? row.CancelledAt : row.RegisteredAt)?.ToString("d MMM, HH:mm", turkish))</td>
+                                    @if (canCancel)
+                                    {
+                                        <td class="text-end">
+                                            <form method="post" asp-action="CancelAttendee" asp-route-id="@list.EventId" asp-route-attendeeId="@row.Id"
+                                                  data-confirm="@row.FullName adlı kişinin kaydı iptal edilecek." data-confirm-title="Kayıt iptal edilsin mi?" data-confirm-ok="İptal et">
+                                                <button class="btn btn-ghost btn-sm text-danger" type="submit">İptal et</button>
+                                            </form>
+                                        </td>
+                                    }
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </section>
+    }
+}
+
+@{ await Table("Katılımcılar", "Henüz kayıt yok.", list.Confirmed, false, !Model.IsPast, false); }
+@{ await Table("Bekleme listesi", "Bekleyen kimse yok.", list.Waitlist, true, !Model.IsPast, false); }
+@if (list.Cancelled.Count > 0)
+{
+    await Table("İptal edilenler", "", list.Cancelled, false, false, true);
+}

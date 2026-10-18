@@ -1,0 +1,21 @@
+# Local run with one command: docker compose up --build
+# App: http://localhost:8080 (with demo data). The SQLite file and uploaded covers live in volumes.
+name: eventtracker
+
+services:
+  web:
+    build: .
+    restart: on-failure
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      Seed__DemoContent: ${SEED_DEMO:-true}
+      Events__TimeZone: Europe/Istanbul
+    ports:
+      - "8080:8080"
+    volumes:
+      - data:/app/data
+      - uploads:/app/wwwroot/uploads
+
+volumes:
+  data:
+  uploads:
