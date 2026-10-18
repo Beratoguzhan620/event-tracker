@@ -40,9 +40,11 @@ jobs:
         run: |
           nohup dotnet run --project src/EventTracker.Web --configuration Release --no-build --no-launch-profile > app.log 2>&1 &
           for i in $(seq 1 60); do curl -sf http://localhost:5090/ > /dev/null && break; sleep 2; done
-          curl -sf http://localhost:5090/ | grep -q "Etkinlikler"
-          curl -sf "http://localhost:5090/?scope=tumu" | grep -q "Frontend İstanbul"
-          curl -sf -o /dev/null -w '%{http_code}\n' http://localhost:5090/events/999 | grep -q 404 || (cat app.log; exit 1)
+          fail() { echo "::error::$1"; cat app.log; exit 1; }
+          curl -sf http://localhost:5090/ | grep -q "Etkinlikler" || fail "home page did not render"
+          curl -sf "http://localhost:5090/?scope=gecmis&q=frontend" | grep -q "Frontend İstanbul" || fail "demo data or search is missing"
+          status=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:5090/events/999)
+          [ "$status" = "404" ] || fail "unknown event returned $status instead of 404"
 
   docker:
     name: Docker Compose
