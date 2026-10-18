@@ -1,0 +1,135 @@
+@model EventFormModel
+@{
+    ViewData["Title"] = Model.IsEdit ? "Etkinliği düzenle" : "Yeni etkinlik";
+}
+
+<nav class="back-link">
+    @if (Model.IsEdit)
+    {
+        <a asp-action="Details" asp-route-id="@Model.Id"><i class="bi bi-arrow-left" aria-hidden="true"></i>Etkinliğe dön</a>
+    }
+    else
+    {
+        <a asp-action="Index"><i class="bi bi-arrow-left" aria-hidden="true"></i>Etkinlikler</a>
+    }
+</nav>
+
+<div class="page-header">
+    <div>
+        <h1>@ViewData["Title"]</h1>
+        <p>@(Model.IsEdit ? "Değişiklikler kaydedildiği anda etkinlik sayfasına yansır." : "Etkinliği oluşturduktan sonra katılımcılar kayıt olabilir.")</p>
+    </div>
+</div>
+
+<form class="card form-card" method="post" enctype="multipart/form-data" novalidate
+      asp-action="@(Model.IsEdit ? "Edit" : "Create")" asp-route-id="@Model.Id">
+    <div class="card-body">
+        <partial name="Partials/_ViewMessages" />
+
+        <fieldset class="form-section">
+            <legend>Temel bilgiler</legend>
+            <div class="mb-3">
+                <label class="form-label" asp-for="Title"></label>
+                <input class="form-control" asp-for="Title" autocomplete="off" />
+                <span class="field-validation-error" asp-validation-for="Title"></span>
+            </div>
+            <div class="mb-3">
+                <label class="form-label" asp-for="CategoryId"></label>
+                <select class="form-select" asp-for="CategoryId" asp-items="Model.Categories">
+                    <option value="">Seçin</option>
+                </select>
+                <span class="field-validation-error" asp-validation-for="CategoryId"></span>
+            </div>
+            <div>
+                <label class="form-label" asp-for="Description"></label>
+                <textarea class="form-control" asp-for="Description" rows="6"></textarea>
+                <div class="form-text">Programı, kimlere uygun olduğunu ve yanınızda getirilmesi gerekenleri yazın.</div>
+                <span class="field-validation-error" asp-validation-for="Description"></span>
+            </div>
+        </fieldset>
+
+        <fieldset class="form-section">
+            <legend>Zaman ve yer</legend>
+            <div class="row g-3">
+                <div class="col-7 col-sm-4">
+                    <label class="form-label" asp-for="StartDate"></label>
+                    <input class="form-control" asp-for="StartDate" data-sync-date="#EndDate" />
+                    <span class="field-validation-error" asp-validation-for="StartDate"></span>
+                </div>
+                <div class="col-5 col-sm-2">
+                    <label class="form-label" asp-for="StartTime">Saat</label>
+                    <input class="form-control" asp-for="StartTime" />
+                    <span class="field-validation-error" asp-validation-for="StartTime"></span>
+                </div>
+                <div class="col-7 col-sm-4">
+                    <label class="form-label" asp-for="EndDate"></label>
+                    <input class="form-control" asp-for="EndDate" />
+                    <span class="field-validation-error" asp-validation-for="EndDate"></span>
+                </div>
+                <div class="col-5 col-sm-2">
+                    <label class="form-label" asp-for="EndTime">Saat</label>
+                    <input class="form-control" asp-for="EndTime" />
+                    <span class="field-validation-error" asp-validation-for="EndTime"></span>
+                </div>
+                <div class="col-12">
+                    <label class="form-label" asp-for="Location"></label>
+                    <input class="form-control" asp-for="Location" placeholder="Örn. Kadıköy · Moda Sahnesi ya da Çevrimiçi" />
+                    <span class="field-validation-error" asp-validation-for="Location"></span>
+                </div>
+            </div>
+        </fieldset>
+
+        <fieldset class="form-section">
+            <legend>Katılım</legend>
+            <div class="col-sm-4">
+                <label class="form-label" asp-for="Capacity"></label>
+                <input class="form-control" asp-for="Capacity" type="number" inputmode="numeric" />
+                <div class="form-text">
+                    Boş bırakılırsa sınır yoktur.
+                    @if (Model.ConfirmedCount > 0)
+                    {
+                        <text>Şu an @Model.ConfirmedCount onaylı katılımcı var.</text>
+                    }
+                </div>
+                <span class="field-validation-error" asp-validation-for="Capacity"></span>
+            </div>
+        </fieldset>
+
+        <fieldset class="form-section mb-0 pb-0 border-0">
+            <legend>Kapak görseli</legend>
+            <div class="cover-field">
+                <div class="cover-preview" data-cover-preview>
+                    @if (Model.ExistingCoverPath is not null)
+                    {
+                        <img src="@Model.ExistingCoverPath" alt="Mevcut kapak görseli" />
+                    }
+                    else
+                    {
+                        <i class="bi bi-image" aria-hidden="true"></i>
+                    }
+                </div>
+                <div class="min-w-0">
+                    <input class="form-control" asp-for="Cover" type="file" accept="image/jpeg,image/png,image/webp" data-cover-input />
+                    <div class="form-text">İsteğe bağlı. JPG, PNG veya WEBP; en fazla 3 MB. Yatay görseller en iyi sonucu verir.</div>
+                    <span class="field-validation-error" asp-validation-for="Cover"></span>
+                    @if (Model.ExistingCoverPath is not null)
+                    {
+                        <div class="form-check mt-2">
+                            <input class="form-check-input" asp-for="RemoveCover" />
+                            <label class="form-check-label" asp-for="RemoveCover">Kapak görselini kaldır</label>
+                        </div>
+                    }
+                </div>
+            </div>
+        </fieldset>
+    </div>
+
+    <div class="card-footer form-actions">
+        <a class="btn btn-outline-secondary" asp-action="@(Model.IsEdit ? "Details" : "Index")" asp-route-id="@Model.Id">Vazgeç</a>
+        <button class="btn btn-primary" type="submit">@(Model.IsEdit ? "Değişiklikleri kaydet" : "Etkinliği oluştur")</button>
+    </div>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

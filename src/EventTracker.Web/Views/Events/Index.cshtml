@@ -1,0 +1,135 @@
+@model EventIndexViewModel
+@{
+    ViewData["Title"] = "Etkinlikler";
+    var scope = Model.Query.Scope switch
+    {
+        EventScope.Past => "gecmis",
+        EventScope.All => "tumu",
+        _ => null,
+    };
+    var scopeLabel = Model.Query.Scope switch
+    {
+        EventScope.Past => "geçmiş",
+        EventScope.All => "toplam",
+        _ => "yaklaşan",
+    };
+    var turkish = new System.Globalization.CultureInfo("tr-TR");
+    var groups = Model.Result.Items.GroupBy(e => new DateTime(e.StartsAt.Year, e.StartsAt.Month, 1));
+}
+
+<partial name="Partials/_ViewMessages" />
+
+<div class="page-header">
+    <div>
+        <h1>Etkinlikler</h1>
+        <p>@Model.Result.TotalCount @scopeLabel etkinlik@(Model.IsFiltered ? " · filtre uygulandı" : null)</p>
+    </div>
+    <div class="page-header-actions">
+        <a class="btn btn-primary" asp-action="Create"><i class="bi bi-plus-lg"></i>Yeni etkinlik</a>
+    </div>
+</div>
+
+<div class="card">
+    <form class="filter-bar" method="get" asp-action="Index" role="search">
+        <nav class="scope-tabs" aria-label="Zaman aralığı">
+            <a class="@(scope is null ? "active" : null)" asp-action="Index" asp-route-q="@Model.Query.Search" asp-route-category="@Model.Query.Category"
+               aria-current="@(scope is null ? "page" : null)">Yaklaşan</a>
+            <a class="@(scope == "gecmis" ? "active" : null)" asp-action="Index" asp-route-scope="gecmis" asp-route-q="@Model.Query.Search" asp-route-category="@Model.Query.Category"
+               aria-current="@(scope == "gecmis" ? "page" : null)">Geçmiş</a>
+            <a class="@(scope == "tumu" ? "active" : null)" asp-action="Index" asp-route-scope="tumu" asp-route-q="@Model.Query.Search" asp-route-category="@Model.Query.Category"
+               aria-current="@(scope == "tumu" ? "page" : null)">Tümü</a>
+        </nav>
+
+        @if (scope is not null)
+        {
+            <input type="hidden" name="scope" value="@scope" />
+        }
+        <div class="search">
+            <i class="bi bi-search" aria-hidden="true"></i>
+            <input class="form-control" type="search" name="q" value="@Model.Query.Search" placeholder="Başlık, yer veya açıklama" aria-label="Etkinlik ara" />
+        </div>
+        <select class="form-select" name="category" aria-label="Kategori">
+            <option value="">Tüm kategoriler</option>
+            @foreach (var category in Model.Categories)
+            {
+                <option value="@category.Slug" selected="@(category.Slug == Model.Query.Category)">@category.Name</option>
+            }
+        </select>
+        <button class="btn btn-outline-secondary" type="submit">Filtrele</button>
+        @if (Model.IsFiltered)
+        {
+            <a class="btn btn-ghost" asp-action="Index" asp-route-scope="@scope">Temizle</a>
+        }
+    </form>
+
+    @if (Model.Result.Items.Count == 0)
+    {
+        if (Model.IsFiltered)
+        {
+            <div class="empty-state m-3">
+                <div class="empty-state-icon"><i class="bi bi-search"></i></div>
+                <h2>Eşleşen etkinlik yok</h2>
+                <p>Aramayı ya da kategori filtresini değiştirip tekrar deneyin.</p>
+                <a class="btn btn-outline-secondary" asp-action="Index" asp-route-scope="@scope">Filtreleri temizle</a>
+            </div>
+        }
+        else if (Model.Query.Scope == EventScope.Past)
+        {
+            <partial name="Partials/_EmptyState" model='("Geçmiş etkinlik yok", "Tarihi geçen etkinlikler burada listelenir.", "bi-clock-history")' />
+        }
+        else
+        {
+            <div class="empty-state m-3">
+                <div class="empty-state-icon"><i class="bi bi-calendar-plus"></i></div>
+                <h2>Yaklaşan etkinlik yok</h2>
+                <p>İlk etkinliği oluşturun; katılımcılar kayıt olmaya başlasın.</p>
+                <a class="btn btn-primary" asp-action="Create">Yeni etkinlik</a>
+            </div>
+        }
+    }
+    else
+    {
+        foreach (var group in groups)
+        {
+            <section class="month-group" aria-labelledby="month-@group.Key.ToString("yyyy-MM")">
+                <h2 class="month-title" id="month-@group.Key.ToString("yyyy-MM")">@group.Key.ToString("MMMM yyyy", turkish)</h2>
+                <ul class="event-list">
+                    @foreach (var item in group)
+                    {
+                        var ongoing = item.StartsAt <= Model.Now && Model.Now < item.EndsAt;
+                        var past = item.EndsAt < Model.Now;
+                        <li class="event-row @(past ? "is-past" : null)">
+                            <partial name="Partials/_DateBlock" model="item.StartsAt" />
+                            <div class="event-row-body min-w-0">
+                                <a class="event-title stretched-link" asp-action="Details" asp-route-id="@item.Id">@item.Title</a>
+                                <div class="event-meta">
+                                    <span><i class="bi bi-clock" aria-hidden="true"></i>@Format.ShortDay(item.StartsAt) · @Format.TimeRange(item.StartsAt, item.EndsAt)</span>
+                                    <span class="text-truncate"><i class="bi bi-geo-alt" aria-hidden="true"></i>@item.Location</span>
+                                </div>
+                                <div class="event-tags">
+                                    <span class="badge badge-neutral"><i class="bi bi-@item.CategoryIcon" aria-hidden="true"></i> @item.CategoryName</span>
+                                    @if (ongoing)
+                                    {
+                                        <span class="badge badge-success">Şu an sürüyor</span>
+                                    }
+                                    else if (!past)
+                                    {
+                                        <span class="badge badge-accent">@Format.Relative(item.StartsAt, item.EndsAt, Model.Now)</span>
+                                    }
+                                    @if (item.IsFull && !past)
+                                    {
+                                        <span class="badge badge-danger">Dolu</span>
+                                    }
+                                </div>
+                            </div>
+                            <div class="event-row-side">
+                                <partial name="Partials/_Capacity" model="(item.ConfirmedCount, item.Capacity, item.WaitlistCount)" />
+                            </div>
+                        </li>
+                    }
+                </ul>
+            </section>
+        }
+        <partial name="Partials/_Pager" model="Model.Pager" />
+    }
+</div>

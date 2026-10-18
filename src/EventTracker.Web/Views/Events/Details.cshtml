@@ -1,0 +1,125 @@
+@model EventDetailsViewModel
+@{
+    var item = Model.Event;
+    ViewData["Title"] = item.Title;
+    string Initials(string name) => string.Concat(name.Split(' ', StringSplitOptions.RemoveEmptyEntries).Take(2).Select(p => char.ToUpper(p[0], new System.Globalization.CultureInfo("tr-TR"))));
+}
+
+<partial name="Partials/_ViewMessages" />
+
+<nav class="back-link">
+    <a asp-action="Index"><i class="bi bi-arrow-left" aria-hidden="true"></i>Etkinlikler</a>
+</nav>
+
+@if (item.CoverImagePath is not null)
+{
+    <img class="event-cover" src="@item.CoverImagePath" alt="@item.Title kapak görseli" />
+}
+
+<div class="detail-header">
+    <div class="min-w-0">
+        <div class="event-tags mb-2">
+            <a class="badge badge-neutral text-decoration-none" asp-action="Index" asp-route-category="@item.CategorySlug">
+                <i class="bi bi-@item.CategoryIcon" aria-hidden="true"></i> @item.CategoryName
+            </a>
+            @if (Model.IsOngoing)
+            {
+                <span class="badge badge-success">Şu an sürüyor</span>
+            }
+            else if (Model.IsPast)
+            {
+                <span class="badge badge-neutral">Sona erdi</span>
+            }
+            else
+            {
+                <span class="badge badge-accent">@Format.Relative(item.StartsAt, item.EndsAt, Model.Now)</span>
+            }
+        </div>
+        <h1>@item.Title</h1>
+    </div>
+    <div class="page-header-actions">
+        <a class="btn btn-outline-secondary" asp-action="Edit" asp-route-id="@item.Id"><i class="bi bi-pencil"></i>Düzenle</a>
+        <form method="post" asp-action="Delete" asp-route-id="@item.Id"
+              data-confirm="&quot;@item.Title&quot; ve @(item.ConfirmedCount + item.Waitlist.Count) kayıt kalıcı olarak silinecek."
+              data-confirm-title="Etkinlik silinsin mi?" data-confirm-ok="Sil">
+            <button class="btn btn-outline-danger" type="submit"><i class="bi bi-trash"></i>Sil</button>
+        </form>
+    </div>
+</div>
+
+<div class="detail-layout">
+    <div class="d-flex flex-column gap-3 min-w-0">
+        <div class="card">
+            <dl class="fact-list">
+                <div>
+                    <dt><i class="bi bi-calendar3" aria-hidden="true"></i>Tarih</dt>
+                    <dd>@Format.Day(item.StartsAt)</dd>
+                </div>
+                <div>
+                    <dt><i class="bi bi-clock" aria-hidden="true"></i>Saat</dt>
+                    <dd>@Format.TimeRange(item.StartsAt, item.EndsAt) <span class="text-muted">· @Format.Duration(item.StartsAt, item.EndsAt)</span></dd>
+                </div>
+                <div>
+                    <dt><i class="bi bi-geo-alt" aria-hidden="true"></i>Yer</dt>
+                    <dd>@item.Location</dd>
+                </div>
+            </dl>
+        </div>
+
+        <div class="card">
+            <div class="card-header"><h2 class="h6 m-0">Etkinlik hakkında</h2></div>
+            <div class="card-body event-description">@item.Description</div>
+        </div>
+    </div>
+
+    <aside class="d-flex flex-column gap-3">
+        <div class="card">
+            <div class="card-header"><h2 class="h6 m-0">Katılım</h2></div>
+            <div class="card-body">
+                <partial name="Partials/_Capacity" model="(item.ConfirmedCount, item.Capacity, item.Waitlist.Count)" />
+                <p class="small text-muted mt-3 mb-0">
+                    @if (Model.IsPast)
+                    {
+                        <text>Etkinlik sona erdi.</text>
+                    }
+                    else if (item.Capacity is null)
+                    {
+                        <text>Kontenjan sınırı yok.</text>
+                    }
+                    else if (item.IsFull)
+                    {
+                        <text>Kontenjan doldu; yeni kayıtlar bekleme listesine alınır.</text>
+                    }
+                    else
+                    {
+                        <text>@item.SeatsLeft kişilik yer kaldı.</text>
+                    }
+                </p>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h2 class="h6 m-0">Katılımcılar</h2>
+                <span class="small text-muted font-mono">@item.ConfirmedCount</span>
+            </div>
+            @if (item.Confirmed.Count == 0)
+            {
+                <p class="small text-muted m-3">Henüz kayıt yok.</p>
+            }
+            else
+            {
+                <ul class="people-list">
+                    @foreach (var person in item.Confirmed.Take(12))
+                    {
+                        <li><span class="initials" aria-hidden="true">@Initials(person.FullName)</span>@person.FullName</li>
+                    }
+                </ul>
+                @if (item.Confirmed.Count > 12)
+                {
+                    <p class="small text-muted mx-3 mb-3">ve @(item.Confirmed.Count - 12) kişi daha</p>
+                }
+            }
+        </div>
+    </aside>
+</div>

@@ -1,0 +1,17 @@
+@{
+    var controller = ViewContext.RouteData.Values["controller"] as string;
+}
+<header class="app-topbar">
+    <div class="topbar-inner">
+        <a class="brand" asp-controller="Events" asp-action="Index">
+            <span class="brand-mark" aria-hidden="true">E</span>EventTracker
+        </a>
+
+        <nav class="top-nav" aria-label="Ana menü">
+            <a class="top-link @(controller == "Events" ? "active" : null)" asp-controller="Events" asp-action="Index"
+               aria-current="@(controller == "Events" ? "page" : null)">
+                <i class="bi bi-calendar-event" aria-hidden="true"></i><span>Etkinlikler</span>
+            </a>
+        </nav>
+    </div>
+</header>

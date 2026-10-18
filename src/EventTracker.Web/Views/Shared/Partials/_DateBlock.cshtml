@@ -1,0 +1,6 @@
+@model DateTime
+<div class="date-block" aria-hidden="true">
+    <span class="date-block-month">@Format.MonthShort(Model)</span>
+    <span class="date-block-day">@Model.Day</span>
+    <span class="date-block-weekday">@Model.ToString("ddd", new System.Globalization.CultureInfo("tr-TR"))</span>
+</div>
