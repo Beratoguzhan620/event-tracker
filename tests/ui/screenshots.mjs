@@ -108,6 +108,68 @@ for (const [device, options] of Object.entries(viewports)) {
     expect((await page.locator(".event-title", { hasText: "Mahalle bostanı" }).count()) === 0, "deleted event should be gone");
   }
 
+  await page.goto(`${baseUrl}/calendar`);
+  await shot(page, `${device}-calendar-month`);
+  expect((await page.locator(".calendar-event").count()) > 3, `${device}: calendar should show this month's events`);
+
+  await page.goto(`${baseUrl}/calendar?view=hafta`);
+  await shot(page, `${device}-calendar-week`);
+
+  if (device === "desktop") {
+    // Register for an event with free seats.
+    await page.goto(`${baseUrl}/?q=kitap`);
+    await page.locator(".event-title").first().click();
+    const eventUrl = page.url();
+    await page.fill("#Registration_FullName", "Deniz Aksoy");
+    await page.fill("#Registration_Email", "deniz.aksoy@example.com");
+    await shot(page, `${device}-rsvp-form`);
+    await Promise.all([page.waitForNavigation(), page.click("#kayit button[type=submit]")]);
+    await shot(page, `${device}-rsvp-confirmed`);
+    expect(page.url().includes("/registration/"), "registering should open the personal registration page");
+    const personalUrl = page.url().split("?")[0];
+
+    // The same address cannot register twice.
+    await page.goto(eventUrl);
+    await page.fill("#Registration_FullName", "Deniz A.");
+    await page.fill("#Registration_Email", "DENIZ.AKSOY@example.com");
+    await Promise.all([page.waitForNavigation(), page.click("#kayit button[type=submit]")]);
+    await shot(page, `${device}-rsvp-duplicate`);
+    expect((await page.locator("#kayit").textContent()).includes("zaten kayıtlısınız"), "a duplicate e-mail should be refused");
+
+    // A full event puts people on the waiting list.
+    await page.goto(`${baseUrl}/?q=belgrad`);
+    await page.locator(".event-title").first().click();
+    await page.fill("#Registration_FullName", "Kaan Er");
+    await page.fill("#Registration_Email", "kaan.er@example.com");
+    await Promise.all([page.waitForNavigation(), page.click("#kayit button[type=submit]")]);
+    await shot(page, `${device}-rsvp-waitlisted`);
+    expect((await page.locator(".status-line").textContent()).includes("Bekleme listesindesiniz"), "a full event should waitlist");
+
+    // Cancelling from the personal link.
+    await page.goto(personalUrl);
+    await page.click("button:has-text('Kaydımı iptal et')");
+    await page.waitForTimeout(400);
+    await shot(page, `${device}-rsvp-cancel-confirm`);
+    await Promise.all([page.waitForNavigation(), page.click("[data-confirm-accept]")]);
+    await shot(page, `${device}-rsvp-cancelled`);
+    expect((await page.locator(".status-line").textContent()).includes("iptal"), "cancelling should show the cancelled state");
+
+    // Organiser view: cancelling a seat promotes the first person waiting.
+    await page.goto(`${baseUrl}/?q=seramik`);
+    await page.locator(".event-title").first().click();
+    await page.click("a:has-text('Listeyi yönet')");
+    await shot(page, `${device}-attendees`);
+    await page.locator("tbody tr").first().locator("button:has-text('İptal et')").click();
+    await page.waitForTimeout(400);
+    await Promise.all([page.waitForNavigation(), page.click("[data-confirm-accept]")]);
+    await shot(page, `${device}-attendees-after-cancel`);
+
+    // Calendar file.
+    const response = await page.request.get(`${eventUrl}/ics`);
+    expect((response.headers()["content-type"] ?? "").startsWith("text/calendar"), "the .ics endpoint should return a calendar file");
+    expect((await response.text()).includes("BEGIN:VEVENT"), "the .ics file should contain an event");
+  }
+
   await page.goto(`${baseUrl}/events/99999`);
   await shot(page, `${device}-not-found`);
 
