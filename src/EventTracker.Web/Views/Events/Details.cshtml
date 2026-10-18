@@ -2,6 +2,7 @@
 @{
     var item = Model.Event;
     ViewData["Title"] = item.Title;
+    ViewData["SkipModelErrors"] = true;
     string Initials(string name) => string.Concat(name.Split(' ', StringSplitOptions.RemoveEmptyEntries).Take(2).Select(p => char.ToUpper(p[0], new System.Globalization.CultureInfo("tr-TR"))));
 }
 
@@ -38,6 +39,15 @@
         <h1>@item.Title</h1>
     </div>
     <div class="page-header-actions">
+        <div class="dropdown">
+            <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="bi bi-calendar-plus"></i>Takvime ekle
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end">
+                <li><a class="dropdown-item" asp-action="Calendar" asp-route-id="@item.Id"><i class="bi bi-download me-2"></i>.ics dosyası (Apple, Outlook)</a></li>
+                <li><a class="dropdown-item" href="@Model.GoogleCalendarUrl" target="_blank" rel="noopener"><i class="bi bi-google me-2"></i>Google Takvim</a></li>
+            </ul>
+        </div>
         <a class="btn btn-outline-secondary" asp-action="Edit" asp-route-id="@item.Id"><i class="bi bi-pencil"></i>Düzenle</a>
         <form method="post" asp-action="Delete" asp-route-id="@item.Id"
               data-confirm="&quot;@item.Title&quot; ve @(item.ConfirmedCount + item.Waitlist.Count) kayıt kalıcı olarak silinecek."
@@ -80,7 +90,7 @@
                 <p class="small text-muted mt-3 mb-0">
                     @if (Model.IsPast)
                     {
-                        <text>Etkinlik sona erdi.</text>
+                        <text>Etkinlik sona erdi; kayıt alınmıyor.</text>
                     }
                     else if (item.Capacity is null)
                     {
@@ -96,12 +106,37 @@
                     }
                 </p>
             </div>
+            @if (!Model.IsPast)
+            {
+                <form class="card-body border-top rsvp-form" id="kayit" method="post" asp-action="Register" asp-route-id="@item.Id" novalidate>
+                    <h3 class="h6 mb-3">@(item.IsFull ? "Bekleme listesine katıl" : "Kayıt ol")</h3>
+                    @if (!ViewData.ModelState.IsValid)
+                    {
+                        <div class="alert alert-danger small py-2" role="alert">
+                            <i class="bi bi-exclamation-circle"></i>
+                            <span>@(ViewData.ModelState[string.Empty]?.Errors.FirstOrDefault()?.ErrorMessage ?? "Formdaki işaretli alanları düzeltin.")</span>
+                        </div>
+                    }
+                    <div class="mb-2">
+                        <label class="form-label" asp-for="Registration.FullName"></label>
+                        <input class="form-control" asp-for="Registration.FullName" autocomplete="name" />
+                        <span class="field-validation-error" asp-validation-for="Registration.FullName"></span>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" asp-for="Registration.Email"></label>
+                        <input class="form-control" asp-for="Registration.Email" type="email" autocomplete="email" inputmode="email" />
+                        <span class="field-validation-error" asp-validation-for="Registration.Email"></span>
+                    </div>
+                    <button class="btn btn-primary w-100" type="submit">@(item.IsFull ? "Bekleme listesine katıl" : "Yerimi ayır")</button>
+                    <p class="form-text mb-0 mt-2">Kayıttan sonra size özel bir bağlantı verilir; kaydınızı oradan iptal edebilirsiniz.</p>
+                </form>
+            }
         </div>
 
         <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center">
-                <h2 class="h6 m-0">Katılımcılar</h2>
-                <span class="small text-muted font-mono">@item.ConfirmedCount</span>
+                <h2 class="h6 m-0">Katılımcılar <span class="text-muted font-mono fw-normal">@item.ConfirmedCount</span></h2>
+                <a class="small" asp-action="Attendees" asp-route-id="@item.Id">Listeyi yönet</a>
             </div>
             @if (item.Confirmed.Count == 0)
             {
@@ -123,3 +158,7 @@
         </div>
     </aside>
 </div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

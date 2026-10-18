@@ -1,0 +1,92 @@
+@using EventTracker.Application.Calendar
+@model CalendarViewModel
+@{
+    var cal = Model.Page;
+    var turkish = new System.Globalization.CultureInfo("tr-TR");
+    var isWeek = cal.View == CalendarView.Week;
+    var title = isWeek
+        ? $"{cal.Days[0].Date.ToString("d MMM", turkish)} – {cal.Days[^1].Date.ToString("d MMM yyyy", turkish)}"
+        : cal.Anchor.ToString("MMMM yyyy", turkish);
+    ViewData["Title"] = $"Takvim · {title}";
+    var viewParam = isWeek ? "hafta" : null;
+    string Iso(DateOnly d) => d.ToString("yyyy-MM-dd");
+    var weekdays = new[] { "Pzt", "Sal", "Çar", "Per", "Cum", "Cmt", "Paz" };
+    var maxPerDay = isWeek ? 8 : 3;
+}
+
+<div class="page-header">
+    <div>
+        <h1>Takvim</h1>
+        <p>@cal.EventCount etkinlik · @(isWeek ? "haftalık" : "aylık") görünüm</p>
+    </div>
+    <div class="page-header-actions">
+        <a class="btn btn-primary" asp-controller="Events" asp-action="Create"><i class="bi bi-plus-lg"></i>Yeni etkinlik</a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="calendar-toolbar">
+        <div class="calendar-nav">
+            <a class="btn btn-outline-secondary btn-sm" asp-action="Index" asp-route-view="@viewParam" asp-route-date="@Iso(cal.Previous)" aria-label="@(isWeek ? "Önceki hafta" : "Önceki ay")"><i class="bi bi-chevron-left m-0"></i></a>
+            <a class="btn btn-outline-secondary btn-sm" asp-action="Index" asp-route-view="@viewParam" asp-route-date="@Iso(Model.Today)">Bugün</a>
+            <a class="btn btn-outline-secondary btn-sm" asp-action="Index" asp-route-view="@viewParam" asp-route-date="@Iso(cal.Next)" aria-label="@(isWeek ? "Sonraki hafta" : "Sonraki ay")"><i class="bi bi-chevron-right m-0"></i></a>
+            <h2 class="calendar-title">@title</h2>
+        </div>
+        <nav class="scope-tabs" aria-label="Görünüm">
+            <a class="@(isWeek ? null : "active")" asp-action="Index" asp-route-date="@Iso(isWeek ? cal.Days[0].Date : cal.Anchor)" aria-current="@(isWeek ? null : "page")">Ay</a>
+            <a class="@(isWeek ? "active" : null)" asp-action="Index" asp-route-view="hafta" asp-route-date="@Iso(isWeek ? cal.Anchor : (cal.Anchor.Month == Model.Today.Month && cal.Anchor.Year == Model.Today.Year ? Model.Today : cal.Anchor))" aria-current="@(isWeek ? "page" : null)">Hafta</a>
+        </nav>
+    </div>
+
+    <div class="calendar @(isWeek ? "calendar-week" : "calendar-month")">
+        <div class="calendar-head" aria-hidden="true">
+            @for (var i = 0; i < 7; i++)
+            {
+                <div>@weekdays[i]@(isWeek ? $" {cal.Days[i].Date.Day}" : null)</div>
+            }
+        </div>
+        <div class="calendar-grid">
+            @foreach (var day in cal.Days)
+            {
+                <div class="calendar-day @(day.InFocus ? null : "is-outside") @(day.IsToday ? "is-today" : null) @(day.Events.Count == 0 ? "is-empty" : null)">
+                    <div class="calendar-date">
+                        <span class="calendar-date-number">@day.Date.Day</span>
+                        <span class="calendar-date-long">@day.Date.ToString("d MMMM, dddd", turkish)</span>
+                    </div>
+                    @if (day.Events.Count > 0)
+                    {
+                        <ul class="calendar-events">
+                            @foreach (var item in day.Events.Take(maxPerDay))
+                            {
+                                var continues = DateOnly.FromDateTime(item.StartsAt) < day.Date;
+                                <li>
+                                    <a class="calendar-event" asp-controller="Events" asp-action="Details" asp-route-id="@item.Id" title="@item.Title · @item.Location">
+                                        <span class="calendar-event-time font-mono">@(continues ? "devam" : Format.Time(item.StartsAt))</span>
+                                        <span class="calendar-event-title">@item.Title</span>
+                                        @if (item.IsFull)
+                                        {
+                                            <span class="visually-hidden">(dolu)</span>
+                                        }
+                                    </a>
+                                </li>
+                            }
+                        </ul>
+                        @if (day.Events.Count > maxPerDay)
+                        {
+                            <a class="calendar-more" asp-action="Index" asp-route-view="hafta" asp-route-date="@Iso(day.Date)">+@(day.Events.Count - maxPerDay) etkinlik daha</a>
+                        }
+                    }
+                </div>
+            }
+        </div>
+    </div>
+
+    @if (cal.EventCount == 0)
+    {
+        <div class="empty-state m-3">
+            <div class="empty-state-icon"><i class="bi bi-calendar-x"></i></div>
+            <h2>Bu @(isWeek ? "hafta" : "ay") etkinlik yok</h2>
+            <p>Başka bir @(isWeek ? "haftaya" : "aya") geçin ya da yeni bir etkinlik oluşturun.</p>
+        </div>
+    }
+</div>

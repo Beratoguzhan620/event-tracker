@@ -1,0 +1,73 @@
+@model RegistrationViewModel
+@{
+    var r = Model.Registration;
+    ViewData["Title"] = "Kaydınız";
+    var turkish = new System.Globalization.CultureInfo("tr-TR");
+    var link = Context.Request.Scheme + "://" + Context.Request.Host + Context.Request.Path;
+}
+
+<partial name="Partials/_ViewMessages" />
+
+<div class="registration">
+    <div class="card">
+        <div class="card-body p-4">
+            @switch (r.Status)
+            {
+                case AttendanceStatus.Confirmed:
+                    <div class="status-line status-ok"><i class="bi bi-check-circle" aria-hidden="true"></i>Yeriniz ayrıldı</div>
+                    break;
+                case AttendanceStatus.Waitlisted:
+                    <div class="status-line status-wait"><i class="bi bi-hourglass-split" aria-hidden="true"></i>Bekleme listesindesiniz · @r.WaitlistPosition. sıra</div>
+                    break;
+                default:
+                    <div class="status-line status-off"><i class="bi bi-x-circle" aria-hidden="true"></i>Kaydınız iptal edildi</div>
+                    break;
+            }
+
+            <h1 class="h4 mt-3 mb-1"><a class="text-reset text-decoration-none" asp-controller="Events" asp-action="Details" asp-route-id="@r.EventId">@r.EventTitle</a></h1>
+            <p class="text-muted mb-4">@Format.Day(r.StartsAt) · @Format.TimeRange(r.StartsAt, r.EndsAt) · @r.Location</p>
+
+            <dl class="spec-list mb-4">
+                <dt>Ad soyad</dt>
+                <dd>@r.FullName</dd>
+                <dt>E-posta</dt>
+                <dd>@r.Email</dd>
+                <dt>Kayıt</dt>
+                <dd>@r.RegisteredAt.ToString("d MMMM yyyy, HH:mm", turkish)</dd>
+                @if (r.CancelledAt is DateTime cancelled)
+                {
+                    <dt>İptal</dt>
+                    <dd>@cancelled.ToString("d MMMM yyyy, HH:mm", turkish)</dd>
+                }
+            </dl>
+
+            @if (r.Status == AttendanceStatus.Waitlisted)
+            {
+                <p class="small text-muted">Önünüzdeki biri kaydını iptal ederse otomatik olarak katılımcılara alınırsınız. Durumu bu sayfadan takip edebilirsiniz.</p>
+            }
+
+            @if (r.Status != AttendanceStatus.Cancelled)
+            {
+                <div class="keep-link">
+                    <label class="form-label small mb-1" for="personalLink">@(Model.JustRegistered ? "Bu bağlantıyı saklayın" : "Kişisel bağlantınız")</label>
+                    <div class="input-group">
+                        <input class="form-control font-mono small" id="personalLink" value="@link" readonly />
+                        <button class="btn btn-outline-secondary" type="button" data-copy="#personalLink">Kopyala</button>
+                    </div>
+                    <div class="form-text">Kaydınızı görmek ve gerekirse iptal etmek için bu bağlantıyı kullanın.</div>
+                </div>
+            }
+
+            <div class="d-flex flex-wrap gap-2 mt-4">
+                <a class="btn btn-outline-secondary" asp-controller="Events" asp-action="Calendar" asp-route-id="@r.EventId"><i class="bi bi-calendar-plus"></i>Takvime ekle</a>
+                @if (r.Status != AttendanceStatus.Cancelled && !Model.IsPast)
+                {
+                    <form method="post" asp-action="Cancel" asp-route-token="@Context.Request.RouteValues["token"]"
+                          data-confirm="Kaydınız iptal edilecek. Yeriniz bekleme listesindeki ilk kişiye verilir." data-confirm-title="Kaydınız iptal edilsin mi?" data-confirm-ok="Kaydımı iptal et">
+                        <button class="btn btn-outline-danger" type="submit">Kaydımı iptal et</button>
+                    </form>
+                }
+            </div>
+        </div>
+    </div>
+</div>
